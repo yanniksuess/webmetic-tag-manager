@@ -1,5 +1,5 @@
 homepage: "https://webmetic.de"
 documentation: "https://webmetic.de"
 versions:
-  - sha: 7cb85a85337651aef0058bb5e1b75417e55dfafe
+  - sha: d570554564f8b20ed05727366def959d620ed7f3
     changeNotes: Beta Release
