@@ -1,5 +1,5 @@
 homepage: "https://webmetic.de"
-documentation: "https://webmetic.de"
+documentation: "https://github.com/yanniksuess/webmetic-tag-manager/"
 versions:
   - sha: d570554564f8b20ed05727366def959d620ed7f3
     changeNotes: Beta Release
