@@ -2,6 +2,8 @@
 
 ## Seamlessly Integrate Webmetic into Your Website Using Google Tag Manager
 
+Diese Vorlage ermöglicht es Ihnen, Webmetic einfach über den Google Tag Manager in Ihre Website zu integrieren.
+
 This template allows you to effortlessly integrate Webmetic into your website using Google Tag Manager, simplifying the implementation process.
 
 ## Importing the Template
@@ -18,7 +20,7 @@ This template allows you to effortlessly integrate Webmetic into your website us
 ## Configuration
 
 1.  In the tag configuration, select "Webmetic" as the tag type.
-2.  Enter your Webmetic Account ID in the provided field. You can find your Account ID in your Webmetic Administration Panel.
+2.  Enter your Webmetic Account ID in the provided field. You can find your Account ID in your Webmetic Administration Dashboard at [Tracking Code](https://webmetic.de/dashboard/?menu=tracking_code).
 3.  Configure the triggering conditions for the tag according to your requirements. It is recommended to trigger the tag on all pages where you want to track data using Webmetic.
 4.  Save the tag configuration.
 
