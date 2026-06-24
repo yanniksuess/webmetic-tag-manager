@@ -40,19 +40,65 @@ ___TEMPLATE_PARAMETERS___
     "displayName": "Account-ID",
     "simpleValueType": true,
     "notSetText": "Please set your Account-ID",
-    "help": "You find the Account-ID in your Webmetic Adminstration Dashboard"
+    "help": "You can find your Account-ID in your \u003ca href=\"https://app.webmetic.de/?menu=tracking_code\" target=\"_blank\"\u003eWebmetic Dashboard\u003c/a\u003e.",
+    "valueValidators": [
+      {
+        "type": "NON_EMPTY"
+      },
+      {
+        "type": "REGEX",
+        "args": [
+          "^[abcdefghijkmnpqrstuvwxyz34679]{6}$"
+        ],
+        "errorMessage": "Invalid Account-ID. It should be 6 characters (e.g. k7nv3g)."
+      }
+    ],
+    "alwaysInSummary": true
+  },
+  {
+    "type": "CHECKBOX",
+    "name": "sessionRecording",
+    "checkboxText": "Enable Session Replay",
+    "simpleValueType": true,
+    "defaultValue": false,
+    "help": "When enabled, Webmetic captures session replays for playback and analysis.",
+    "alwaysInSummary": true
   }
 ]
 
 
 ___SANDBOXED_JS_FOR_WEB_TEMPLATE___
 
-const encode = require('encodeUriComponent');
+const createArgumentsQueue = require('createArgumentsQueue');
+const setInWindow = require('setInWindow');
+const copyFromWindow = require('copyFromWindow');
 const injectScript = require('injectScript');
-const account = data.accountId;
-const url = 'https://t.webmetic.de/iav.js?id=' + encode(account);
 
-injectScript(url, data.gtmOnSuccess, data.gtmOnFailure);
+const account = data.accountId;
+const enableSR = data.sessionRecording;
+
+// Double-init guard
+if (!copyFromWindow('webmetic')) {
+  // Create command queue: window.webmetic = function(){ webmetic.q.push(arguments) }
+  createArgumentsQueue('webmetic', 'webmetic.q');
+
+  // Set account ID on namespace
+  setInWindow('webmetic.aid', account, true);
+
+  // Session replay flag
+  setInWindow('webmetic.sr', !!enableSR, true);
+
+  injectScript('https://t.webmetic.de/iav.js', data.gtmOnSuccess, function() {
+    // Reset all state so a retry is possible on the next tag fire
+    setInWindow('webmetic', undefined, true);
+    setInWindow('webmetic.q', undefined, true);
+    setInWindow('webmetic.aid', undefined, true);
+    setInWindow('webmetic.sr', undefined, true);
+    data.gtmOnFailure();
+  }, 'webmeticLib');
+} else {
+  data.gtmOnSuccess();
+}
 
 
 ___WEB_PERMISSIONS___
@@ -83,13 +129,163 @@ ___WEB_PERMISSIONS___
       "isEditedByUser": true
     },
     "isRequired": true
+  },
+  {
+    "instance": {
+      "key": {
+        "publicId": "access_globals",
+        "versionId": "1"
+      },
+      "param": [
+        {
+          "key": "keys",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 3,
+                "mapKey": [
+                  { "type": 1, "string": "key" },
+                  { "type": 1, "string": "read" },
+                  { "type": 1, "string": "write" },
+                  { "type": 1, "string": "execute" }
+                ],
+                "mapValue": [
+                  { "type": 1, "string": "webmetic" },
+                  { "type": 8, "boolean": true },
+                  { "type": 8, "boolean": true },
+                  { "type": 8, "boolean": false }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  { "type": 1, "string": "key" },
+                  { "type": 1, "string": "read" },
+                  { "type": 1, "string": "write" },
+                  { "type": 1, "string": "execute" }
+                ],
+                "mapValue": [
+                  { "type": 1, "string": "webmetic.q" },
+                  { "type": 8, "boolean": true },
+                  { "type": 8, "boolean": true },
+                  { "type": 8, "boolean": false }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  { "type": 1, "string": "key" },
+                  { "type": 1, "string": "read" },
+                  { "type": 1, "string": "write" },
+                  { "type": 1, "string": "execute" }
+                ],
+                "mapValue": [
+                  { "type": 1, "string": "webmetic.aid" },
+                  { "type": 8, "boolean": false },
+                  { "type": 8, "boolean": true },
+                  { "type": 8, "boolean": false }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  { "type": 1, "string": "key" },
+                  { "type": 1, "string": "read" },
+                  { "type": 1, "string": "write" },
+                  { "type": 1, "string": "execute" }
+                ],
+                "mapValue": [
+                  { "type": 1, "string": "webmetic.sr" },
+                  { "type": 8, "boolean": false },
+                  { "type": 8, "boolean": true },
+                  { "type": 8, "boolean": false }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "clientAnnotations": {
+      "isEditedByUser": true
+    },
+    "isRequired": true
   }
 ]
 
 
 ___TESTS___
 
-scenarios: []
+scenarios:
+- name: Basic initialization
+  code: |-
+    mock('injectScript', function(url, onSuccess, onFailure, cacheKey) {
+      assertThat(url).isEqualTo('https://t.webmetic.de/iav.js');
+      assertThat(cacheKey).isEqualTo('webmeticLib');
+      onSuccess();
+    });
+
+    runCode(mockData);
+    assertApi('injectScript').wasCalled();
+    assertApi('gtmOnSuccess').wasCalled();
+
+    assertThat(copyFromWindow('webmetic')).isNotEqualTo(undefined);
+    assertThat(copyFromWindow('webmetic.aid')).isEqualTo('mcppih');
+- name: Session replay enabled
+  code: |-
+    mockData.sessionRecording = true;
+
+    mock('injectScript', function(url, onSuccess) { onSuccess(); });
+
+    runCode(mockData);
+    assertApi('injectScript').wasCalled();
+
+    assertThat(copyFromWindow('webmetic.aid')).isEqualTo('mcppih');
+    assertThat(copyFromWindow('webmetic.sr')).isEqualTo(true);
+- name: Session replay disabled by default
+  code: |-
+    mock('injectScript', function(url, onSuccess) { onSuccess(); });
+
+    runCode(mockData);
+
+    assertThat(copyFromWindow('webmetic.sr')).isEqualTo(false);
+- name: Double-init guard prevents second load
+  code: |-
+    // Simulate first init already happened
+    setInWindow('webmetic', function() {}, true);
+
+    runCode(mockData);
+    assertApi('injectScript').wasNotCalled();
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Failed load resets guard for retry
+  code: |-
+    // First fire — script fails to load
+    mock('injectScript', function(url, onSuccess, onFailure) {
+      onFailure();
+    });
+
+    runCode(mockData);
+    assertApi('gtmOnFailure').wasCalled();
+
+    // All state should be reset so next fire can retry
+    assertThat(copyFromWindow('webmetic')).isEqualTo(undefined);
+    assertThat(copyFromWindow('webmetic.q')).isEqualTo(undefined);
+    assertThat(copyFromWindow('webmetic.aid')).isEqualTo(undefined);
+    assertThat(copyFromWindow('webmetic.sr')).isEqualTo(undefined);
+setup: |-
+  const copyFromWindow = require('copyFromWindow');
+  const setInWindow = require('setInWindow');
+
+  setInWindow('webmetic', undefined, true);
+  setInWindow('webmetic.q', undefined, true);
+  setInWindow('webmetic.aid', undefined, true);
+  setInWindow('webmetic.sr', undefined, true);
+
+  const mockData = {
+    "accountId": "mcppih",
+    "sessionRecording": false
+  };
 
 
 ___NOTES___
