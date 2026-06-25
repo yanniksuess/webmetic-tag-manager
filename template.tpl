@@ -11,7 +11,7 @@ ___INFO___
 {
   "type": "TAG",
   "id": "cvt_temp_public_id",
-  "version": 2,
+  "version": 1,
   "securityGroups": [],
   "displayName": "Webmetic",
   "categories": [
@@ -182,7 +182,7 @@ ___WEB_PERMISSIONS___
                 ],
                 "mapValue": [
                   { "type": 1, "string": "webmetic.aid" },
-                  { "type": 8, "boolean": false },
+                  { "type": 8, "boolean": true },
                   { "type": 8, "boolean": true },
                   { "type": 8, "boolean": false }
                 ]
@@ -197,7 +197,7 @@ ___WEB_PERMISSIONS___
                 ],
                 "mapValue": [
                   { "type": 1, "string": "webmetic.sr" },
-                  { "type": 8, "boolean": false },
+                  { "type": 8, "boolean": true },
                   { "type": 8, "boolean": true },
                   { "type": 8, "boolean": false }
                 ]
